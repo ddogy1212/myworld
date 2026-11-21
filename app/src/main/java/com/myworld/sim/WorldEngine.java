@@ -50,6 +50,7 @@ public final class WorldEngine {
         for(WorldState.Nation n:w.nations){
             economy(w,n);
             autonomousGovernment(w,n);
+            progressScheduledProgram(w,n);
             if(research(w,n))breakthroughs++;
             society(w,n);
         }
@@ -70,6 +71,82 @@ public final class WorldEngine {
             " 연간 평가: 경제 "+w.avg("경제")+" · 연구 "+w.avg("기술")+
             " · 세계 평화 "+w.peace+" · 기후 "+w.climate+".");
     }
+    /** Advance a player's previously ordered domestic program month-by-month. */
+    private static void progressScheduledProgram(WorldState w,WorldState.Nation n){
+        if(n.plannedMonths<=0 || n.plannedPolicy<0 ||
+                n.plannedPolicy>=POLICIES.length)return;
+        int cost=POLICY_COST[n.plannedPolicy]*Math.max(1,Math.min(3,n.plannedStrength));
+        if(n.treasury<cost){
+            if(w.dice(100)<20)w.addEvent("예산",n.name+"의 장기 "+POLICIES[n.plannedPolicy]+" 사업이 재정 부족으로 지연됐다.");
+            return;
+        }
+        n.treasury-=cost;
+        for(int i=0;i<n.plannedStrength;i++)policy(w,n,n.plannedPolicy,false);
+        n.plannedMonths--;
+        if(n.plannedMonths==0){
+            w.addEvent("정책",n.name+"의 장기 '"+POLICIES[n.plannedPolicy]+"' 프로그램이 완료됐다.");
+            n.plannedPolicy=-1;
+        }
+    }
+
+    /** Free-text policy executor with 1-3 intensity and 1-24 month scheduling. */
+    public static String playerPolicyText(WorldState w,int nation,int policy,int intensity,int months){
+        if(nation<0 || nation>=w.nations.size()||policy<0||policy>=POLICIES.length)
+            return "지원하지 않는 국가 또는 정책입니다.";
+        if(intensity<1||intensity>3||months<1||months>24)
+            return "지원하는 강도는 1~3, 기간은 게임 속 1~24개월입니다.";
+        int cost=POLICY_COST[policy]*intensity;
+        String error=valid(w,cost);
+        if(error!=null)return error;
+        WorldState.Nation n=w.nations.get(nation);
+        if(n.treasury<cost)return n.name+"의 재정이 부족해 사업을 시작할 수 없습니다.";
+        w.influence-=cost;w.interventionsUsed++;
+        n.treasury-=cost;
+        for(int i=0;i<intensity;i++)policy(w,n,policy,false);
+        if(months>1){
+            n.plannedPolicy=policy;n.plannedMonths=months-1;n.plannedStrength=intensity;
+        }
+        String message=n.name+"에서 "+POLICIES[policy]+" 사업을 강도 "+intensity+
+            "로 시행"+(months>1?"하고 "+months+"개월 장기 프로그램을 등록했다.":"했다.");
+        w.addEvent("플레이어",message);
+        return message;
+    }
+
+    /** Fiscal decisions influence abstract treasury, production and group sentiment. */
+    public static String playerFiscal(WorldState w,int nation,boolean higher,int intensity){
+        if(nation<0||nation>=w.nations.size()||intensity<1||intensity>3)
+            return "잘못된 재정 명령입니다.";
+        int cost=2*intensity;
+        String error=valid(w,cost);if(error!=null)return error;
+        WorldState.Nation n=w.nations.get(nation);
+        w.influence-=cost;w.interventionsUsed++;
+        if(higher){
+            n.treasury=Math.min(350,n.treasury+5*intensity);
+            n.economy=safe(n.economy-intensity);
+            groups(n,-intensity*2,-intensity,0,0,-intensity);
+        }else{
+            n.treasury=Math.max(-100,n.treasury-5*intensity);
+            n.economy=safe(n.economy+intensity);
+            groups(n,intensity,intensity,0,0,intensity);
+        }
+        String message=n.name+"에서 세부담 "+(higher?"인상":"완화")+
+            " 정책을 강도 "+intensity+"로 시행했다. 국가 재정과 경제·시민 만족도가 변했다.";
+        w.addEvent("플레이어",message);return message;
+    }
+
+    /** Worldwide environmental pact has broad, deliberately modest effects. */
+    public static String playerClimateSummit(WorldState w){
+        String error=valid(w,12);if(error!=null)return error;
+        w.influence-=12;w.interventionsUsed++;
+        for(WorldState.Nation n:w.nations){
+            n.environment=safe(n.environment+1);
+            n.diplomacy=safe(n.diplomacy+1);
+        }
+        w.carbon=Math.max(0,w.carbon-2);
+        String message="197개국 공동 기후 협의를 개최했다. 국제 정책 협력이 강화됐다.";
+        w.addEvent("플레이어",message);return message;
+    }
+
     private static void economy(WorldState w,WorldState.Nation n){
         int tradeScore=0;
         for(int b=0;b<w.nations.size();b++){
