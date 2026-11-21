@@ -12,6 +12,11 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.text.TextWatcher;
+import android.text.Editable;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -141,6 +146,8 @@ public final class MainActivity extends Activity {
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout content=vertical();content.setPadding(d(15),d(8),d(15),d(20));
         scroll.addView(content);
+        commandConsole(content,world);
+        gap(content,15);
         switch(tab){
             case 0:overview(content,world);break;
             case 1:nation(content,world);break;
@@ -224,6 +231,18 @@ public final class MainActivity extends Activity {
         gap(c,8);
         c.addView(button("모든 사건·연대기 보기  →",false,()->{tab=3;render();}));
     }
+    private String populationText(WorldState.Nation n){
+        if(n.population<=0)return "공식자료 없음";
+        if(n.population>=10)return String.format(Locale.KOREA,"%.2f억 명",n.population/100.0);
+        if(n.population>=0.01)return String.format(Locale.KOREA,"%.1f만 명",n.population*100.0);
+        return String.format(Locale.KOREA,"%.0f명",n.population*1000000.0);
+    }
+    private String sovereigntyText(String status){
+        if("MEMBER".equals(status))return "유엔 회원국";
+        if("OBSERVER".equals(status))return "유엔 비회원 옵서버";
+        return "별도 표기 · 국제적 지위에 이견";
+    }
+
     private void info(LinearLayout c,String name,String value){
         LinearLayout row=horizontal();
         row.addView(label(name,13,DIM,false),new LinearLayout.LayoutParams(0,-2,1));
@@ -234,20 +253,94 @@ public final class MainActivity extends Activity {
         WorldRepository.change(this,w->{w.selected=id;return null;});
         WorldWidget.updateAll(this);
     }
+    /** Searchable 197-country selector, including small nations. */
     private void chooseNationDialog(boolean targetSelection){
         WorldState w=state();
-        String[] titles=new String[w.nations.size()];
-        for(int i=0;i<titles.length;i++){
-            WorldState.Nation n=w.nations.get(i);
-            titles[i]=n.name+"  ·  "+n.region+"  ·  경제 "+n.economy;
-        }
-        new AlertDialog.Builder(this)
-            .setTitle(targetSelection?"외교 상대 국가":"국가 선택")
-            .setItems(titles,(dialog,which)->{
-                if(targetSelection)target=which;else chooseCountry(which);
-                render();
-            }).setNegativeButton("닫기",null).show();
+        LinearLayout body=vertical();
+        body.setPadding(d(13),d(12),d(13),d(8));
+        EditText search=new EditText(this);
+        search.setSingleLine(true);
+        search.setTextSize(15);
+        search.setHint("나라 이름 검색 · 한국어 / 영어 / ISO");
+        body.addView(search);
+        ListView list=new ListView(this);
+        ArrayList<Integer> shown=new ArrayList<>();
+        ArrayList<String> labels=new ArrayList<>();
+        ArrayAdapter<String> adapter=new ArrayAdapter<>(this,
+            android.R.layout.simple_list_item_1,labels);
+        list.setAdapter(adapter);
+        body.addView(list,new LinearLayout.LayoutParams(-1,d(360)));
+        final Runnable filter=()->{
+            String query=search.getText().toString().toLowerCase(Locale.ROOT).trim();
+            shown.clear();labels.clear();
+            for(int i=0;i<w.nations.size();i++){
+                WorldState.Nation n=w.nations.get(i);
+                String[] catalog=NationCatalog.ROWS[i].split("\\|",-1);
+                if(query.isEmpty()||n.name.toLowerCase(Locale.ROOT).contains(query)||
+                        catalog[2].toLowerCase(Locale.ROOT).contains(query)||
+                        n.iso3.toLowerCase(Locale.ROOT).contains(query)){
+                    shown.add(i);
+                    labels.add(n.name+" · "+n.iso3+" · "+n.region);
+                }
+            }
+            adapter.notifyDataSetChanged();
+        };
+        search.addTextChangedListener(new TextWatcher(){
+            @Override public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+            @Override public void onTextChanged(CharSequence s,int start,int before,int count){
+                filter.run();
+            }
+            @Override public void afterTextChanged(Editable editable){}
+        });
+        filter.run();
+        AlertDialog dialog=new AlertDialog.Builder(this)
+            .setTitle(targetSelection?"외교 상대 국가 선택":"국가 선택 · "+w.nations.size()+"곳")
+            .setView(body).setNegativeButton("닫기",null).create();
+        list.setOnItemClickListener((p,v,position,id)->{
+            if(position<0||position>=shown.size())return;
+            int nation=shown.get(position);
+            if(targetSelection)target=nation;else chooseCountry(nation);
+            dialog.dismiss();render();
+        });
+        dialog.show();
     }
+
+    private void commandConsole(LinearLayout parent,WorldState w){
+        LinearLayout panel=card(parent);
+        panel.addView(label("⌨️ 세계 명령 입력",17,CYAN,true));
+        gap(panel,6);
+        panel.addView(label("국가·정책·기간을 문장으로 입력하고 확인 후 실행해.",12,DIM,false));
+        gap(panel,9);
+        EditText typed=new EditText(this);
+        typed.setHint("예: 부탄에 12개월 동안 재생에너지 투자");
+        typed.setTextColor(LIGHT);typed.setHintTextColor(DIM);
+        typed.setTextSize(14);
+        typed.setMinLines(2);typed.setMaxLines(4);
+        typed.setBackground(shape(Color.rgb(24,46,67),9));
+        typed.setPadding(d(9),d(9),d(9),d(9));
+        panel.addView(typed,new LinearLayout.LayoutParams(-1,-2));
+        gap(panel,8);
+        panel.addView(button("명령 분석 및 실행 확인  →",true,()->{
+            WorldCommand.Plan plan=WorldCommand.interpret(state(),typed.getText().toString());
+            if(!plan.valid()){
+                new AlertDialog.Builder(this).setTitle("명령을 해석하지 못했어")
+                    .setMessage(plan.error).setPositiveButton("수정할게",null).show();
+                return;
+            }
+            new AlertDialog.Builder(this).setTitle("다음 명령으로 실행할까?")
+                .setMessage(plan.explanation+"\n\n진행하면 게임 세계에 반영되고 되돌리기 어려워.")
+                .setNegativeButton("입력 수정",null)
+                .setPositiveButton("확인 후 실행",(dialog,which)->{
+                    String outcome=WorldRepository.change(this,plan::execute);
+                    Toast.makeText(this,outcome,Toast.LENGTH_LONG).show();
+                    WorldWidget.updateAll(this);
+                    render();
+                }).show();
+        }));
+        gap(panel,7);
+        panel.addView(label("예: 몰디브 의료 확대 · 한국과 일본 무역협정 · 영국 세금 인하 · 세계 전체 탄소 협력",11,DIM,false));
+    }
+
     private void nation(LinearLayout c,WorldState w){
         WorldState.Nation n=w.nations.get(w.selected);
         section(c,"국가 운영","세계의 국가들은 개별 정책과 사회집단을 가지고 있어요.");
@@ -258,7 +351,13 @@ public final class MainActivity extends Activity {
         gap(summary,4);
         summary.addView(label(n.region+" · 정부 우선순위 "+n.ideology(),12,CYAN,false));
         gap(summary,12);
-        info(summary,"인구",one(n.population/100.0)+"억");
+        info(summary,"인구",populationText(n));
+        info(summary,"국가 분류",sovereigntyText(n.sovereignty));
+        info(summary,"기준 인구 연도",n.populationYear>0?n.populationYear+"년 · 세계은행":"자료 없음");
+        info(summary,"명목 GDP",n.gdpYear>0?String.format(Locale.KOREA,"%.2f억 달러 (%d년)",n.gdpUsd/100000000.0,n.gdpYear):"자료 없음");
+        info(summary,"GDP 출처",n.gdpYear>0?"세계은행 · 발표 연도별 값":"게임용 가정만 사용");
+        info(summary,"게임 수치", "경제·사회·외교 지수는 시뮬레이션 가정");
+        info(summary,"장기 사업",n.plannedMonths>0 && n.plannedPolicy>=0?WorldEngine.POLICIES[n.plannedPolicy]+" · "+n.plannedMonths+"개월 남음":"현재 없음");
         info(summary,"재정",one(n.treasury)+" 단위");
         info(summary,"지난달 자율 정책",n.lastPolicy<0?"예산 부족으로 미시행":WorldEngine.POLICIES[n.lastPolicy]);
         info(summary,"시민 만족도",n.satisfaction()+"/100");
@@ -378,7 +477,7 @@ public final class MainActivity extends Activity {
         for(WorldState.Event event:w.events)eventLine(c,w,event);
     }
     private void settings(LinearLayout c,WorldState w){
-        section(c,"세계 시계와 규칙","게임은 오프라인에서도 저장되어 시간이 흐릅니다.");
+        section(c,"세계 시계와 규칙","세계는 오프라인에서도 저장되어 시간이 흐릅니다.");
         LinearLayout rules=card(c);
         info(rules,"세계 날짜",w.date());
         info(rules,"속도","현실 24시간 → 게임 1개월");
