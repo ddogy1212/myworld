@@ -91,6 +91,8 @@ public final class WorldSatelliteView extends View {
                 invalidate();return true;
             }
         });
+        focus(state.selected);
+        postDelayed(this::invalidate,16000L);
         // Prefer GPU accelerated Canvas for smooth tile panning.
     }
     public void setWorld(WorldState data){world=data;chosen=data.selected;invalidate();}
@@ -320,7 +322,7 @@ public final class WorldSatelliteView extends View {
             }
         }
         WorldState.Nation selected=world.nations.get(chosen);
-        if(selected.mapX>=0&&selected.mapY>=0){
+        if(!outlined.contains(chosen)&&selected.mapX>=0&&selected.mapY>=0){
             double lng=selected.mapX*360/1000.0-180,lat=90-selected.mapY*180/500.0;
             float x=screenX((lng+180)/360),y=screenY(mercY(lat));
             paint.setStyle(Paint.Style.STROKE);
