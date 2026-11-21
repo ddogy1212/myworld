@@ -174,4 +174,42 @@ public final class WorldEngineTest {
         assertEquals(2,n.plannedMonths);
         assertEquals(1,w.month);
     }
+
+    @Test public void policyActionInstantlyProducesSavedBeforeAfterReport(){
+        WorldState w=WorldState.fresh(ANCHOR);
+        int country=w.selected;
+        int old=w.nations.get(country).health;
+        WorldImpact.Result result=WorldImpact.run(w,country,-1,
+            ()->WorldEngine.playerPolicy(w,country,2));
+        assertTrue(result.message,result.success);
+        assertEquals(1,w.playerPolicies);
+        assertTrue(w.lastImpact.contains("의료"));
+        assertTrue(w.lastImpact.contains("→"));
+        assertTrue(w.nations.get(country).health>=old);
+        assertTrue(result.deltas.size()>0);
+    }
+
+    @Test public void invalidActionDoesNotGenerateFakeSuccessReport(){
+        WorldState w=WorldState.fresh(ANCHOR);
+        w.influence=0;
+        WorldImpact.Result result=WorldImpact.run(w,w.selected,-1,
+            ()->WorldEngine.playerPolicy(w,w.selected,0));
+        assertFalse(result.success);
+        assertTrue(w.lastImpact.isEmpty());
+        assertEquals(0,w.playerPolicies);
+    }
+
+    @Test public void firstGameMissionRewardCanOnlyBeClaimedOnce(){
+        WorldState w=WorldState.fresh(ANCHOR);
+        assertFalse(WorldQuests.done(w,0));
+        WorldEngine.playerPolicy(w,w.selected,2);
+        assertTrue(WorldQuests.done(w,0));
+        int before=w.influence;
+        assertTrue(WorldQuests.claim(w,0).contains("목표 완료"));
+        assertEquals(Math.min(24,before+2),w.influence);
+        assertTrue(WorldQuests.claimed(w,0));
+        int awarded=w.influence;
+        assertTrue(WorldQuests.claim(w,0).contains("이미"));
+        assertEquals(awarded,w.influence);
+    }
 }
