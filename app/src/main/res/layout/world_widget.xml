@@ -17,7 +17,7 @@
         android:maxLines="1" android:textColor="#92E2FF"/>
     <TextView android:id="@+id/world_widget_date"
         android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:gravity="center" android:text="2040.01"
+        android:gravity="center" android:text="2026.11"
         android:textSize="11sp" android:textStyle="bold"
         android:maxLines="1" android:textColor="#FFFFFF"/>
     <TextView android:id="@+id/world_widget_health"
