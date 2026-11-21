@@ -37,7 +37,7 @@ public final class WorldEngineTest {
         assertEquals(0,WorldEngine.catchUp(w,ANCHOR+WorldState.MONTH_MS));
         assertEquals(11,WorldEngine.catchUp(w,ANCHOR+12*WorldState.MONTH_MS));
         assertEquals(12,w.month);
-        assertEquals("2041.01",w.dateShort());
+        assertEquals("2027.11",w.dateShort());
     }
 
     @Test public void autogovernmentStaysWithinBoundedState(){
@@ -47,7 +47,8 @@ public final class WorldEngineTest {
         assertTrue(w.events.size()<=260);
         assertTrue(w.totalPopulation()>0);
         for(WorldState.Nation n:w.nations){
-            assertTrue(n.population>0 && !Double.isNaN(n.population));
+            assertTrue(n.population>=0 && !Double.isNaN(n.population));
+            if(n.populationYear==0)assertEquals(0,n.population,0.0001);
             assertTrue(Double.isFinite(n.treasury));
             assertBetween(n.economy);
             assertBetween(n.stability);assertBetween(n.environment);
@@ -59,7 +60,7 @@ public final class WorldEngineTest {
             for(int g:n.groups)assertBetween(g);
             for(int t:n.technology)assertTrue(t>=0&&t<=10);
         }
-        for(int a=0;a<24;a++)for(int b=a+1;b<24;b++){
+        for(int a=0;a<w.nations.size();a++)for(int b=a+1;b<w.nations.size();b++){
             assertEquals(w.relations[a][b],w.relations[b][a]);
             assertEquals(w.tensions[a][b],w.tensions[b][a]);
             assertEquals(w.trade[a][b],w.trade[b][a]);
@@ -114,5 +115,63 @@ public final class WorldEngineTest {
         assertTrue(WorldEngine.playerDiplomacy(w,0,0,1).contains("서로 다른"));
         assertTrue(WorldEngine.playerPolicy(w,-1,0).contains("잘못된"));
         assertEquals(initial,w.influence);
+    }
+
+    @Test public void countryCatalogueHasAllUnMemberStatesObserversAndExtras(){
+        WorldState w=WorldState.fresh(ANCHOR);
+        assertEquals(197,w.nations.size());
+        assertEquals("2026.11",w.dateShort());
+        int members=0,observers=0,extras=0,withPop=0,withGdp=0;
+        for(WorldState.Nation n:w.nations){
+            if("MEMBER".equals(n.sovereignty))members++;
+            else if("OBSERVER".equals(n.sovereignty))observers++;
+            else extras++;
+            if(n.populationYear>0)withPop++;
+            if(n.gdpYear>0)withGdp++;
+        }
+        assertEquals(193,members);
+        assertEquals(2,observers);
+        assertEquals(2,extras);
+        assertTrue(withPop>185);
+        assertTrue(withGdp>180);
+    }
+
+    @Test public void freeTextCommandsInterpretInternationalAndDomesticActions(){
+        WorldState w=WorldState.fresh(ANCHOR);
+        WorldCommand.Plan energy=WorldCommand.interpret(w,"부탄에 12개월 동안 재생에너지 투자");
+        assertTrue(energy.error,energy.valid());
+        assertEquals(WorldCommand.Plan.POLICY,energy.type);
+        assertEquals(3,energy.policy);
+        assertEquals(12,energy.months);
+        assertEquals("BTN",w.nations.get(energy.country).iso3);
+
+        WorldCommand.Plan trade=WorldCommand.interpret(w,"한국과 일본 무역협정 체결");
+        assertTrue(trade.error,trade.valid());
+        assertEquals(WorldCommand.Plan.DIPLOMACY,trade.type);
+        assertEquals(0,trade.policy);
+        assertEquals("KOR",w.nations.get(trade.country).iso3);
+        assertEquals("JPN",w.nations.get(trade.other).iso3);
+
+        WorldCommand.Plan fiscal=WorldCommand.interpret(w,"가나에서 세금 30% 인하");
+        assertTrue(fiscal.error,fiscal.valid());
+        assertEquals(WorldCommand.Plan.FISCAL,fiscal.type);
+        assertEquals(2,fiscal.intensity);
+        assertFalse(fiscal.higherTax);
+        assertEquals("GHA",w.nations.get(fiscal.country).iso3);
+
+        WorldCommand.Plan nonsensical=WorldCommand.interpret(w,"무작정 세상을 바꿔");
+        assertFalse(nonsensical.valid());
+    }
+
+    @Test public void typedMultiMonthProgramContinuesAutonomously(){
+        WorldState w=WorldState.fresh(ANCHOR);
+        WorldCommand.Plan program=WorldCommand.interpret(w,"BTN에 4개월 동안 재생에너지 투자");
+        String result=program.execute(w);
+        assertTrue(result, result.contains("4개월"));
+        WorldState.Nation n=w.nations.get(program.country);
+        assertEquals(3,n.plannedMonths);
+        WorldEngine.tick(w);
+        assertEquals(2,n.plannedMonths);
+        assertEquals(1,w.month);
     }
 }
