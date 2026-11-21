@@ -233,7 +233,14 @@ public final class MainActivity extends Activity {
         row=horizontal();
         stat(row,"기후 건전성",w.climate+"/100",CYAN);
         stat(row,"연구 역량",w.avg("기술")+"/100",Color.rgb(179,171,255));
-        c.addView(row);gap(c,16);
+        c.addView(row);gap(c,13);
+        LinearLayout trends=card(c);
+        trends.addView(label("📈 지구가 실제로 바뀐 12개월 기록",16,CYAN,true));
+        gap(trends,5);
+        trends.addView(label("경제·평화·환경 · 매 게임 달 계산한 지표만 표시",11,DIM,false));
+        gap(trends,7);
+        trends.addView(new WorldTrendView(this,w),new LinearLayout.LayoutParams(-1,-2));
+        gap(c,16);
 
         LinearLayout report=card(c);
         report.addView(label("⏳ 세계 시간",16,CYAN,true));gap(report,6);
