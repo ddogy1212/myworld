@@ -41,6 +41,7 @@ public final class MainActivity extends Activity {
     private static final int YELLOW=Color.rgb(252,210,132);
     private int tab=0;
     private int target=1;
+    private int requestedMapFocus=-1;
     private int observedMonth=-1;
     private TextView countdown;
     private final Handler handler=new Handler();
@@ -217,6 +218,10 @@ public final class MainActivity extends Activity {
         WorldMapView map=new WorldMapView(this,w);
         map.setOnCountryClick(id->{chooseCountry(id);tab=1;render();});
         c.addView(map,new LinearLayout.LayoutParams(-1,-2));
+        if(requestedMapFocus>=0){
+            final int focus=requestedMapFocus;requestedMapFocus=-1;
+            map.post(()->map.focus(focus));
+        }
         gap(c,8);
         LinearLayout filters=horizontal();
         filters.addView(button("안정도",true,()->map.setMetricMode(0)),new LinearLayout.LayoutParams(0,-2,1));
@@ -340,7 +345,10 @@ public final class MainActivity extends Activity {
         list.setOnItemClickListener((p,v,position,id)->{
             if(position<0||position>=shown.size())return;
             int nation=shown.get(position);
-            if(targetSelection)target=nation;else chooseCountry(nation);
+            if(targetSelection)target=nation;else {
+                chooseCountry(nation);
+                if(tab==0)requestedMapFocus=nation;
+            }
             dialog.dismiss();render();
         });
         dialog.show();
