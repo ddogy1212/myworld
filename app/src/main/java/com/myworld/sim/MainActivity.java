@@ -582,12 +582,9 @@ public final class MainActivity extends Activity {
                 WorldEngine.POLICY_COST[policy]+"점 소모\n국가 예산 "+
                 WorldEngine.POLICY_COST[policy]+"단위 소모\n\n정책을 시행할까요?")
             .setNegativeButton("돌아가기",null)
-            .setPositiveButton("정책 시행",(dialog,which)->{
-                String message=WorldRepository.change(this,s->
-                    WorldEngine.playerPolicy(s,nationId,policy));
-                Toast.makeText(this,message,Toast.LENGTH_LONG).show();
-                WorldWidget.updateAll(this);render();
-            }).show();
+            .setPositiveButton("⚡ 정책 시행",(dialog,which)->
+                runImpactAction(nationId,-1,s->
+                    WorldEngine.playerPolicy(s,nationId,policy))).show();
     }
     private void diplomacy(LinearLayout c,WorldState w){
         WorldState.Nation source=w.nations.get(w.selected);
@@ -632,12 +629,8 @@ public final class MainActivity extends Activity {
             .setMessage(w.nations.get(a).name+" ↔ "+w.nations.get(b).name+
                 "\n\n세계 영향력 "+WorldEngine.DIPLOMACY_COST[kind]+
                 "점을 소모해 국제 관계에 개입합니다.")
-            .setNegativeButton("취소",null).setPositiveButton("진행",(d,which)->{
-                String outcome=WorldRepository.change(this,s->
-                    WorldEngine.playerDiplomacy(s,a,b,kind));
-                Toast.makeText(this,outcome,Toast.LENGTH_LONG).show();
-                WorldWidget.updateAll(this);render();
-            }).show();
+            .setNegativeButton("취소",null).setPositiveButton("⚡ 협정 실행",(d,which)->
+                runImpactAction(a,b,s->WorldEngine.playerDiplomacy(s,a,b,kind))).show();
     }
     private void chronicle(LinearLayout c,WorldState w){
         section(c,"세계 연대기","정책, 시민 행동, 기술 발전, 국제 사건을 기록합니다.");
