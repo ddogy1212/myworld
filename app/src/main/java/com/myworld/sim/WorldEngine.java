@@ -38,7 +38,7 @@ public final class WorldEngine {
         if(now<w.originUtc)return 0;
         long target=(now-w.originUtc)/WorldState.MONTH_MS;
         int count=0;
-        while(w.month<target && count<2400){tick(w);count++;}
+        while(w.month<target && count<96){tick(w);count++;}
         return count;
     }
     public static void tick(WorldState w){
@@ -55,7 +55,7 @@ public final class WorldEngine {
         }
         for(int a=0;a<w.nations.size();a++)
             for(int b=a+1;b<w.nations.size();b++)relationship(w,a,b);
-        for(int k=0;k<10;k++){
+        for(int k=0;k<Math.min(45,w.nations.size()/4);k++){
             int a=w.dice(w.nations.size()),b=w.dice(w.nations.size());
             if(a!=b && diplomacy(w,a,b))interactions++;
         }
@@ -185,7 +185,7 @@ public final class WorldEngine {
         double welfare=(n.health+n.food+n.stability+n.welfare)/400.0;
         double growth=.00065*(welfare-.36);
         if(n.food<38 || n.health<40)growth=-.00045;
-        n.population=Math.max(.25,Math.min(2000,n.population*(1+growth)));
+        if(n.population>0)n.population=Math.max(.0001,Math.min(2000,n.population*(1+growth)));
         if(n.environment<35&&w.dice(100)<18)n.health=safe(n.health-1);
         if(n.stability<35 && w.dice(100)<23){
             groups(n,-2,0,0,0,-2);
