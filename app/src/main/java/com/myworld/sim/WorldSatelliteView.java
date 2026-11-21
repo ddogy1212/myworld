@@ -66,6 +66,7 @@ public final class WorldSatelliteView extends View {
     private int chosen,metricMode=0;
     private boolean satellite=true,dragging=false,scaling=false;
     private boolean everLoadedTile=false;
+    private final long createdAt=SystemClock.elapsedRealtime();
     private double centerLon=20,centerLat=15,zoom=1.2;
     private float lastX,lastY,startX,startY;
     private static final class Poly {
@@ -90,7 +91,7 @@ public final class WorldSatelliteView extends View {
                 invalidate();return true;
             }
         });
-        setLayerType(View.LAYER_TYPE_SOFTWARE,null);
+        // Prefer GPU accelerated Canvas for smooth tile panning.
     }
     public void setWorld(WorldState data){world=data;chosen=data.selected;invalidate();}
     public void setOnCountryClick(OnCountryClick l){listener=l;}
@@ -340,22 +341,24 @@ public final class WorldSatelliteView extends View {
         canvas.drawText("지도: "+field+" · 확대 "+String.format(java.util.Locale.KOREA,"%.1f",zoom)+
             " · 실제 사진은 촬영 시점 상이",19,46,paint);
         if(satellite&&!everLoadedTile){
+            boolean timeout=SystemClock.elapsedRealtime()-createdAt>15000;
             paint.setColor(Color.argb(190,5,27,45));
             canvas.drawRoundRect(12,getHeight()/2f-35,getWidth()-12,getHeight()/2f+29,10,10,paint);
             paint.setColor(Color.rgb(221,236,246));paint.setTextSize(12*getResources().getDisplayMetrics().scaledDensity);
-            canvas.drawText("위성사진 불러오는 중 · 인터넷 필요",22,getHeight()/2f-3,paint);
+            canvas.drawText(timeout?"위성 서버에 연결하지 못했어":"위성사진 불러오는 중 · 인터넷 필요",22,getHeight()/2f-3,paint);
             paint.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);
             canvas.drawText("연결이 안 되면 국경 지도 모드로 전환",22,getHeight()/2f+17,paint);
         }
         paint.setColor(Color.argb(225,3,22,39));
-        canvas.drawRect(0,getHeight()-40,getWidth(),getHeight(),paint);
+        canvas.drawRect(0,getHeight()-54,getWidth(),getHeight(),paint);
         paint.setColor(Color.rgb(238,240,238));paint.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);
-        canvas.drawText("국가 터치 · 이동 · 두 손가락 확대",10,getHeight()-26,paint);
+        canvas.drawText("국가 터치 · 이동 · 두 손가락 확대",10,getHeight()-40,paint);
         if(satellite){
-            paint.setTextSize(7.8f*getResources().getDisplayMetrics().scaledDensity);
-            canvas.drawText(PROVIDERS,10,getHeight()-9,paint);
+            paint.setTextSize(8.5f*getResources().getDisplayMetrics().scaledDensity);
+            canvas.drawText("Powered by Esri · Sources: Esri, Maxar,",10,getHeight()-24,paint);
+            canvas.drawText("Earthstar Geographics · GIS User Community",10,getHeight()-10,paint);
         }else{
-            canvas.drawText("Borders: Natural Earth public domain",10,getHeight()-9,paint);
+            canvas.drawText("Borders: Natural Earth public domain",10,getHeight()-18,paint);
         }
     }
     private int atPoint(float screenX,float screenY){
