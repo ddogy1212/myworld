@@ -227,11 +227,28 @@ public final class WorldEngine {
                 w.addEvent("외교",x.name+"과 "+y.name+"의 기존 협정이 만료돼 재협상이 필요해졌다.");
             }
         }
-        if(rel< -30&&w.dice(100)<10)pair(w.tensions,a,b,Math.min(100,tension+1));
-        if(rel>=0&&w.dice(100)<18)pair(w.tensions,a,b,Math.max(0,tension-1));
-        if(tension>=80&&rel<=-50&&w.dice(1000)<3){
+        // Civilian-centered abstract diplomatic disputes grow from resource
+        // shortages, economic competition and existing distrust.
+        int disputeChance=x.region.equals(y.region)?5:2; // per mille
+        if((x.energy<42||y.food<42))disputeChance+=3;
+        if(w.dice(1000)<disputeChance){
+            pair(w.relations,a,b,WorldState.clampSigned(rel-3-w.dice(5)));
+            pair(w.tensions,a,b,Math.min(100,tension+6+w.dice(7)));
+            pair(w.trade,a,b,Math.max(0,w.trade[a][b]-3));
+            if(w.dice(100)<35)
+                w.addEvent("외교",x.name+"과 "+y.name+" 사이에서 공급망·무역 문제로 외교적 마찰이 발생했다.");
+        } else {
+            if(rel< -30 && w.dice(100)<16)
+                pair(w.tensions,a,b,Math.min(100,tension+1+w.dice(2)));
+            if(rel>=0 && w.dice(100)<22)
+                pair(w.tensions,a,b,Math.max(0,tension-1));
+        }
+        // Escalation is never a military tactic: only social, budget and
+        // diplomatic consequences are modelled.
+        int latestTrust=w.relations[a][b],latestTension=w.tensions[a][b];
+        if(latestTension>=74&&latestTrust<=-45&&w.dice(100)<4){
             pair(w.conflicts,a,b,1);pair(w.pacts,a,b,0);
-            w.addEvent("분쟁","⚠️ "+x.name+"과 "+y.name+" 사이의 갈등이 지역 분쟁으로 확대됐다.");
+            w.addEvent("분쟁","⚠️ "+x.name+"과 "+y.name+" 사이의 장기 외교 위기가 지역 분쟁으로 확대됐다. 국제사회는 중재를 요구한다.");
         }
     }
     private static boolean diplomacy(WorldState w,int a,int b){
