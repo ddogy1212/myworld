@@ -31,6 +31,7 @@ public final class WorldState {
         public int[] research = new int[TECH_BRANCHES];
         public int[] groups = new int[GROUP_NAMES.length];
         public int lastPolicy; // policy index for the current month
+        public int plannedPolicy=-1, plannedMonths=0, plannedStrength=1;
         public int yearsOfPeace;
 
         public String ideology() {
@@ -62,6 +63,8 @@ public final class WorldState {
             j.put("transport",transport);j.put("welfare",welfare);
             j.put("defense",defense);j.put("diplomacy",diplomacy);
             j.put("focus",focus); j.put("lastPolicy",lastPolicy);j.put("peace",yearsOfPeace);
+            j.put("plannedPolicy",plannedPolicy);j.put("plannedMonths",plannedMonths);
+            j.put("plannedStrength",plannedStrength);
             j.put("technology",arr(technology));j.put("research",arr(research));j.put("groups",arr(groups));
             return j;
         }
@@ -82,6 +85,9 @@ public final class WorldState {
             n.welfare=j.getInt("welfare");n.defense=j.getInt("defense");
             n.diplomacy=j.getInt("diplomacy");n.focus=j.optInt("focus",0);
             n.lastPolicy=j.optInt("lastPolicy",-1);n.yearsOfPeace=j.optInt("peace",0);
+            n.plannedPolicy=j.optInt("plannedPolicy",-1);
+            n.plannedMonths=j.optInt("plannedMonths",0);
+            n.plannedStrength=j.optInt("plannedStrength",1);
             n.technology=readArr(j.getJSONArray("technology"),TECH_BRANCHES);
             n.research=readArr(j.getJSONArray("research"),TECH_BRANCHES);
             n.groups=readArr(j.getJSONArray("groups"),GROUP_NAMES.length);
@@ -243,6 +249,8 @@ public final class WorldState {
             dest.welfare=source.welfare;dest.defense=source.defense;
             dest.diplomacy=source.diplomacy;dest.treasury=source.treasury;
             dest.focus=source.focus;dest.lastPolicy=source.lastPolicy;
+            dest.plannedPolicy=source.plannedPolicy;dest.plannedMonths=source.plannedMonths;
+            dest.plannedStrength=source.plannedStrength;
             dest.technology=source.technology.clone();
             dest.research=source.research.clone();dest.groups=source.groups.clone();
         }
