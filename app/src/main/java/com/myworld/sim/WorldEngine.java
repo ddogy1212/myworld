@@ -63,6 +63,9 @@ public final class WorldEngine {
         if(w.dice(100)<26){randomEvent(w);events++;}
         climate(w);
         globalPeace(w);
+        WorldState.addTrend(w.economyTrend,w.avg("경제"));
+        WorldState.addTrend(w.peaceTrend,w.peace);
+        WorldState.addTrend(w.climateTrend,w.climate);
         w.lastMonthlyDigest=String.format(Locale.KOREA,
             "%s · 기술 진전 %d건 · 외교 활동 %d건 · 주요 사건 %d건 · 진행 중 분쟁 %d건",
             w.date(),breakthroughs,interactions,events,w.conflictsCount());
