@@ -146,6 +146,10 @@ public final class WorldState {
     public final ArrayList<Event> events=new ArrayList<>();
     public int[][] relations, trade, tensions, pacts, conflicts;
     public String lastMonthlyDigest="";
+    // Saved player accomplishments and the latest visible policy effect.
+    public int playerPolicies=0, playerDiplomacy=0, questClaimMask=0;
+    public String lastImpact="";
+    public int lastImpactMonth=-1;
 
     private static String koreanCountry(String iso2,String iso3,String english){
         if("XKX".equals(iso3))return "코소보";
@@ -209,6 +213,8 @@ public final class WorldState {
             w.trade[a][b]=w.trade[b][a]=Math.max(0,12+trust/3+w.dice(18));
             w.tensions[a][b]=w.tensions[b][a]=Math.max(0,22-trust/2);
         }
+        // Default tutorial focus: South Korea. All other countries remain selectable.
+        for(Nation nation:w.nations)if("KOR".equals(nation.iso3)){w.selected=nation.id;break;}
         // The game does NOT assert that these are 2026 diplomatic measurements.
         // International baseline is hypothetical; avoid asserting real conflict.
         w.addEvent("개국","197개 정치 실체가 있는 가상 지구의 역사가 시작됐다. 기본 인구·GDP는 공개 연도별 자료로 초기화됐다.");
@@ -232,6 +238,11 @@ public final class WorldState {
         upgraded.carbon=old.carbon;upgraded.climate=old.climate;
         upgraded.peace=old.peace;upgraded.globalEvents=old.globalEvents;
         upgraded.lastMonthlyDigest=old.lastMonthlyDigest;
+        upgraded.playerPolicies=old.playerPolicies;
+        upgraded.playerDiplomacy=old.playerDiplomacy;
+        upgraded.questClaimMask=old.questClaimMask;
+        upgraded.lastImpact=old.lastImpact;
+        upgraded.lastImpactMonth=old.lastImpactMonth;
         int[] mapping=new int[old.nations.size()];
         for(int i=0;i<mapping.length;i++){
             String code=NationCatalog.LEGACY_ISO[i];
@@ -314,6 +325,9 @@ public final class WorldState {
         j.put("interventionsUsed",interventionsUsed);j.put("selected",selected);
         j.put("carbon",carbon);j.put("climate",climate);j.put("peace",peace);
         j.put("globalEvents",globalEvents);j.put("digest",lastMonthlyDigest);
+        j.put("playerPolicies",playerPolicies);j.put("playerDiplomacy",playerDiplomacy);
+        j.put("questClaimMask",questClaimMask);j.put("lastImpact",lastImpact);
+        j.put("lastImpactMonth",lastImpactMonth);
         JSONArray ns=new JSONArray();for(Nation n:nations)ns.put(n.json());j.put("nations",ns);
         JSONArray es=new JSONArray();for(Event e:events)es.put(e.json());j.put("events",es);
         j.put("relations",matrix(relations));j.put("trade",matrix(trade));
@@ -333,6 +347,11 @@ public final class WorldState {
         w.climate=j.optInt("climate",67);w.peace=j.optInt("peace",76);
         w.globalEvents=j.optInt("globalEvents",0);
         w.lastMonthlyDigest=j.optString("digest","");
+        w.playerPolicies=j.optInt("playerPolicies",0);
+        w.playerDiplomacy=j.optInt("playerDiplomacy",0);
+        w.questClaimMask=j.optInt("questClaimMask",0);
+        w.lastImpact=j.optString("lastImpact","");
+        w.lastImpactMonth=j.optInt("lastImpactMonth",-1);
         JSONArray a=j.getJSONArray("nations");
         for(int i=0;i<a.length();i++)w.nations.add(Nation.from(a.getJSONObject(i)));
         if(w.nations.size()!=NationCatalog.size() && w.nations.size()!=NationCatalog.LEGACY_ISO.length)
