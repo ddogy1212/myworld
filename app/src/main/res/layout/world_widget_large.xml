@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/large_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="10dp">
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <ImageView android:layout_width="47dp" android:layout_height="47dp"
+            android:src="@drawable/ic_world"
+            android:contentDescription="@string/widget_large_description"/>
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:orientation="vertical"
+            android:paddingLeft="4dp">
+            <TextView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="MYWORLD"
+                android:textColor="#75DFF5" android:textSize="12sp"
+                android:textStyle="bold"/>
+            <TextView android:id="@+id/large_date"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="2040년 01월" android:textColor="#FFFFFF"
+                android:textSize="15sp" android:textStyle="bold"/>
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:paddingTop="5dp">
+        <TextView android:id="@+id/large_economy" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="wrap_content"
+            android:textColor="#F4E5AC" android:text="경제 65" android:textSize="11sp"/>
+        <TextView android:id="@+id/large_peace" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="wrap_content"
+            android:gravity="end" android:textColor="#89EDCF"
+            android:text="평화 76" android:textSize="11sp"/>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:paddingTop="4dp">
+        <TextView android:id="@+id/large_climate" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="wrap_content"
+            android:textColor="#B3EE94" android:text="환경 67" android:textSize="11sp"/>
+        <TextView android:id="@+id/large_population" android:layout_width="0dp"
+            android:layout_weight="1" android:gravity="end" android:layout_height="wrap_content"
+            android:textColor="#C0D5F3" android:text="인구 50.0억" android:textSize="11sp"/>
+    </LinearLayout>
+    <TextView android:id="@+id/large_news" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:textColor="#F2F5FA" android:textSize="10sp"
+        android:ellipsize="end" android:maxLines="2"
+        android:text="24개국이 역사를 시작합니다"/>
+</LinearLayout>

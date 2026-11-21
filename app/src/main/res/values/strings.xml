@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MYWORLD</string>
+    <string name="widget_description">1×1 작은 지구, 연월과 경제·평화 지표</string>
+    <string name="widget_large_description">2×2 지구 대시보드: 경제·평화·기후·인구·뉴스</string>
+</resources>
