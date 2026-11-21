@@ -386,6 +386,11 @@ public final class WorldState {
         w.pacts=readMatrix(j.getJSONArray("pacts"),n);
         w.conflicts=readMatrix(j.getJSONArray("conflicts"),n);
         w.selected=Math.min(n-1,Math.max(0,w.selected));
+        // Old MYWORLD saves have no historical series. Start from their
+        // current measurements rather than displaying a false 0/100 chart.
+        if(!j.has("economyTrend"))java.util.Arrays.fill(w.economyTrend,w.avg("경제"));
+        if(!j.has("peaceTrend"))java.util.Arrays.fill(w.peaceTrend,w.peace);
+        if(!j.has("climateTrend"))java.util.Arrays.fill(w.climateTrend,w.climate);
         return w;
     }
 }
