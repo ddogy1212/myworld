@@ -141,7 +141,7 @@ public final class WorldSatelliteView extends View {
     }
     private void readBorders(){
         try(BufferedReader input=new BufferedReader(new InputStreamReader(
-            getContext().getAssets().open("world_borders.txt"),"UTF-8"))){
+            getContext().getAssets().open("world_borders_precise.txt"),"UTF-8"))){
             String row;
             while((row=input.readLine())!=null){
                 if(row.startsWith("#")||row.isEmpty())continue;
@@ -155,9 +155,9 @@ public final class WorldSatelliteView extends View {
                     for(String point:points){
                         String[] coordinates=point.split(",");
                         if(coordinates.length!=2)continue;
-                        int x=Integer.parseInt(coordinates[0]),y=Integer.parseInt(coordinates[1]);
-                        double lat=90.0-y*180.0/500.0;
-                        xy[count++]=(float)(x/1000.0);
+                        double lon=Double.parseDouble(coordinates[0]);
+                        double lat=Double.parseDouble(coordinates[1]);
+                        xy[count++]=(float)((lon+180.0)/360.0);
                         xy[count++]=(float)mercY(lat);
                     }
                     if(count>=6){
