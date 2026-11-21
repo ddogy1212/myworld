@@ -142,6 +142,15 @@ public final class WorldState {
     public int climate = 67;
     public int peace = 76;
     public int globalEvents = 0;
+    // The last twelve simulated months, a real game telemetry trail.
+    public int[] economyTrend=new int[12];
+    public int[] peaceTrend=new int[12];
+    public int[] climateTrend=new int[12];
+    public static void addTrend(int[] trend,int current){
+        for(int i=0;i<trend.length-1;i++)trend[i]=trend[i+1];
+        trend[trend.length-1]=current;
+    }
+
     public final ArrayList<Nation> nations=new ArrayList<>();
     public final ArrayList<Event> events=new ArrayList<>();
     public int[][] relations, trade, tensions, pacts, conflicts;
@@ -215,6 +224,9 @@ public final class WorldState {
         }
         // Default tutorial focus: South Korea. All other countries remain selectable.
         for(Nation nation:w.nations)if("KOR".equals(nation.iso3)){w.selected=nation.id;break;}
+        java.util.Arrays.fill(w.economyTrend,w.avg("경제"));
+        java.util.Arrays.fill(w.peaceTrend,w.peace);
+        java.util.Arrays.fill(w.climateTrend,w.climate);
         // The game does NOT assert that these are 2026 diplomatic measurements.
         // International baseline is hypothetical; avoid asserting real conflict.
         w.addEvent("개국","197개 정치 실체가 있는 가상 지구의 역사가 시작됐다. 기본 인구·GDP는 공개 연도별 자료로 초기화됐다.");
@@ -238,6 +250,9 @@ public final class WorldState {
         upgraded.carbon=old.carbon;upgraded.climate=old.climate;
         upgraded.peace=old.peace;upgraded.globalEvents=old.globalEvents;
         upgraded.lastMonthlyDigest=old.lastMonthlyDigest;
+        upgraded.economyTrend=old.economyTrend.clone();
+        upgraded.peaceTrend=old.peaceTrend.clone();
+        upgraded.climateTrend=old.climateTrend.clone();
         upgraded.playerPolicies=old.playerPolicies;
         upgraded.playerDiplomacy=old.playerDiplomacy;
         upgraded.questClaimMask=old.questClaimMask;
@@ -325,6 +340,9 @@ public final class WorldState {
         j.put("interventionsUsed",interventionsUsed);j.put("selected",selected);
         j.put("carbon",carbon);j.put("climate",climate);j.put("peace",peace);
         j.put("globalEvents",globalEvents);j.put("digest",lastMonthlyDigest);
+        j.put("economyTrend",arr(economyTrend));
+        j.put("peaceTrend",arr(peaceTrend));
+        j.put("climateTrend",arr(climateTrend));
         j.put("playerPolicies",playerPolicies);j.put("playerDiplomacy",playerDiplomacy);
         j.put("questClaimMask",questClaimMask);j.put("lastImpact",lastImpact);
         j.put("lastImpactMonth",lastImpactMonth);
@@ -346,6 +364,9 @@ public final class WorldState {
         w.selected=j.optInt("selected",0);w.carbon=j.optInt("carbon",41);
         w.climate=j.optInt("climate",67);w.peace=j.optInt("peace",76);
         w.globalEvents=j.optInt("globalEvents",0);
+        if(j.has("economyTrend"))w.economyTrend=readArr(j.getJSONArray("economyTrend"),12);
+        if(j.has("peaceTrend"))w.peaceTrend=readArr(j.getJSONArray("peaceTrend"),12);
+        if(j.has("climateTrend"))w.climateTrend=readArr(j.getJSONArray("climateTrend"),12);
         w.lastMonthlyDigest=j.optString("digest","");
         w.playerPolicies=j.optInt("playerPolicies",0);
         w.playerDiplomacy=j.optInt("playerDiplomacy",0);
