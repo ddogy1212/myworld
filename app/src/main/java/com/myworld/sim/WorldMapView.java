@@ -75,6 +75,7 @@ public final class WorldMapView extends View {
             for(int a=0;a<world.nations.size();a++){
                 for(int b=a+1;b<world.nations.size();b++){
                     WorldState.Nation x=world.nations.get(a),y=world.nations.get(b);
+                    if(x.mapX<0||x.mapY<0||y.mapX<0||y.mapY<0)continue;
                     boolean conflict=world.conflicts[a][b]>0;
                     boolean partnership=world.pacts[a][b]>0;
                     if(!conflict&&!partnership)continue;
@@ -85,6 +86,7 @@ public final class WorldMapView extends View {
                 }
             }
             for(WorldState.Nation n:world.nations){
+                if(n.mapX<0||n.mapY<0)continue;
                 boolean current=n.id==selected;
                 int color=n.stability>=65?Color.rgb(106,234,177):
                     n.stability>=40?Color.rgb(250,203,108):Color.rgb(244,116,108);
@@ -120,6 +122,7 @@ public final class WorldMapView extends View {
         float y=event.getY()*500/getHeight();
         int best=-1;double dist=Double.MAX_VALUE;
         for(WorldState.Nation n:world.nations){
+            if(n.mapX<0||n.mapY<0)continue;
             double d=Math.pow((n.mapX-x),2)+Math.pow((n.mapY-y),2);
             if(d<dist){dist=d;best=n.id;}
         }
