@@ -204,6 +204,17 @@ public final class WorldState {
             w.trade[a][b]=w.trade[b][a]=Math.max(0,12+rel/3+w.dice(18));
             w.tensions[a][b]=w.tensions[b][a]=Math.max(0,22-rel/2);
         }
+        // A few deterministic alternate-history rivalries give autonomous
+        // negotiation, tension and peacekeeping meaningful initial conditions.
+        // Pairings are procedurally selected, not factual geopolitical claims.
+        for(int k=0;k<5;k++){
+            int left=w.dice(count),right=w.dice(count);
+            if(left==right)right=(right+1)%count;
+            int rivalry=-36-w.dice(25), tension=56+w.dice(23);
+            w.relations[left][right]=w.relations[right][left]=rivalry;
+            w.tensions[left][right]=w.tensions[right][left]=tension;
+            w.trade[left][right]=w.trade[right][left]=Math.max(1,w.trade[left][right]/3);
+        }
         w.addEvent("개국","가상 지구의 새 역사가 시작됐다. 24개 국가가 독립적으로 성장하고 관계를 만들어 간다.");
         w.addEvent("시스템","현실 24시간에 게임 1개월이 흐른다. 국가는 플레이어 접속 없이도 자율적으로 행동한다.");
         return w;
