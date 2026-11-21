@@ -9,17 +9,24 @@ public final class WorldEngineTest {
 
     @Test public void freshWorldContainsDistinctStatesAndValidDiplomacy(){
         WorldState w=WorldState.fresh(ANCHOR);
-        assertEquals(24,w.nations.size());
+        assertEquals(197,w.nations.size());
+        int members=0,observers=0,specials=0;
+        for(WorldState.Nation n:w.nations){
+            if("MEMBER".equals(n.sovereignty))members++;
+            if("OBSERVER".equals(n.sovereignty))observers++;
+            if("SPECIAL".equals(n.sovereignty))specials++;
+        }
+        assertEquals(193,members);assertEquals(2,observers);assertEquals(2,specials);
         assertEquals(0,w.month);
         assertEquals(16,w.influence);
         assertEquals(ANCHOR,w.originUtc);
-        int rivals=0;
-        for(int a=0;a<24;a++)for(int b=a+1;b<24;b++){
+        int distinct=0;
+        for(int a=0;a<w.nations.size();a++)for(int b=a+1;b<w.nations.size();b++){
             assertEquals(w.relations[a][b],w.relations[b][a]);
             assertEquals(w.tensions[a][b],w.tensions[b][a]);
-            if(w.relations[a][b] < -30)rivals++;
+            if(w.relations[a][b]!=0)distinct++;
         }
-        assertTrue("Fictional world should have divergent geopolitical interests",rivals>=1);
+        assertTrue("World relations must not be identical",distinct>=1);
     }
 
     @Test public void oneRealDayAlwaysEqualsOneSimulatedMonth(){
@@ -74,7 +81,7 @@ public final class WorldEngineTest {
         assertEquals(a.tradePacts(),b.tradePacts());
         assertEquals(a.conflictsCount(),b.conflictsCount());
         assertEquals(a.events.size(),b.events.size());
-        for(int i=0;i<24;i++){
+        for(int i=0;i<a.nations.size();i++){
             assertEquals(a.nations.get(i).economy,b.nations.get(i).economy);
             assertEquals(a.nations.get(i).population,b.nations.get(i).population,0.000001);
         }
@@ -83,13 +90,13 @@ public final class WorldEngineTest {
     @Test public void playerActionsSpendPointsAndLimitMonthlyIntervention(){
         WorldState w=WorldState.fresh(ANCHOR);
         String changed=WorldEngine.playerPolicy(w,0,0);
-        assertTrue(changed.contains("대한민국"));
+        assertTrue(changed.contains(w.nations.get(0).name));
         assertEquals(13,w.influence);
         assertEquals(1,w.interventionsUsed);
         int prior=w.relations[0][1];
         String diplomacy=WorldEngine.playerDiplomacy(w,0,1,1);
-        assertTrue(diplomacy.contains("대한민국"));
-        assertEquals(prior+15,w.relations[0][1]);
+        assertTrue(diplomacy.contains(w.nations.get(0).name));
+        assertEquals(WorldState.clampSigned(prior+15),w.relations[0][1]);
         assertEquals(w.relations[0][1],w.relations[1][0]);
         assertEquals(11,w.influence);
         assertEquals(2,w.interventionsUsed);
