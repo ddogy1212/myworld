@@ -21,7 +21,7 @@
                 android:textStyle="bold"/>
             <TextView android:id="@+id/large_date"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="2040년 01월" android:textColor="#FFFFFF"
+                android:text="2026년 11월" android:textColor="#FFFFFF"
                 android:textSize="15sp" android:textStyle="bold"/>
         </LinearLayout>
     </LinearLayout>
