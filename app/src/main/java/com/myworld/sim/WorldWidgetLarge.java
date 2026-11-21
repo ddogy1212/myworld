@@ -31,8 +31,11 @@ public class WorldWidgetLarge extends AppWidgetProvider {
             v.setTextViewText(R.id.large_climate,"환경 "+w.climate);
             v.setTextViewText(R.id.large_population,String.format(java.util.Locale.KOREA,
                 "인구 %.1f억",w.totalPopulation()/100.0));
-            v.setTextViewText(R.id.large_news,w.lastMonthlyDigest.isEmpty()?
-                "24개국이 새로운 역사를 시작합니다":w.lastMonthlyDigest);
+            v.setTextViewText(R.id.large_news,
+                !w.lastImpact.isEmpty()&&w.lastImpactMonth==w.month
+                ? "⚡ "+w.lastImpact.split("\\n")[0] :
+                (w.lastMonthlyDigest.isEmpty()?
+                "🌍 197개 국가의 새 역사가 시작됩니다.":w.lastMonthlyDigest));
             return null;
         });
         PendingIntent open=PendingIntent.getActivity(context,42,new Intent(context,MainActivity.class),
