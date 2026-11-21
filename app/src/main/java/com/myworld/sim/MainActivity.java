@@ -215,7 +215,7 @@ public final class MainActivity extends Activity {
         tools.addView(button("🔎 국가 검색",true,()->chooseNationDialog(false)),new LinearLayout.LayoutParams(0,-2,1));
         tools.addView(button("🎯 목표 보기",false,()->showHowToPlay()),new LinearLayout.LayoutParams(0,-2,1));
         c.addView(tools);gap(c,9);
-        WorldMapView map=new WorldMapView(this,w);
+        WorldSatelliteView map=new WorldSatelliteView(this,w);
         map.setOnCountryClick(id->{chooseCountry(id);tab=1;render();});
         c.addView(map,new LinearLayout.LayoutParams(-1,-2));
         if(requestedMapFocus>=0){
@@ -228,8 +228,15 @@ public final class MainActivity extends Activity {
         filters.addView(button("경제",false,()->map.setMetricMode(1)),new LinearLayout.LayoutParams(0,-2,1));
         filters.addView(button("환경",false,()->map.setMetricMode(2)),new LinearLayout.LayoutParams(0,-2,1));
         filters.addView(button("전체",false,map::resetZoom),new LinearLayout.LayoutParams(0,-2,1));
-        c.addView(filters);gap(c,5);
-        c.addView(label("Natural Earth 실측 국경 1:110m · 작은 나라는 확대 후 표시 · 분쟁 지역 경계 표기는 자료 기준",11,DIM,false));
+        c.addView(filters);gap(c,8);
+        LinearLayout layers=horizontal();
+        layers.addView(button("🛰 위성사진",true,()->map.setSatelliteEnabled(true)),
+            new LinearLayout.LayoutParams(0,-2,1));
+        layers.addView(button("🗺 국경 지도",false,()->map.setSatelliteEnabled(false)),
+            new LinearLayout.LayoutParams(0,-2,1));
+        c.addView(layers);gap(c,6);
+        c.addView(label("Esri World Imagery 실제 위성·항공사진 · 인터넷 필요 · 촬영일은 지역마다 다름",11,DIM,false));
+        c.addView(label("국경: Natural Earth 1:110m · 위성 화면이 느리면 '국경 지도' 버튼을 눌러줘",11,DIM,false));
         gap(c,13);
         LinearLayout row=horizontal();
         stat(row,"세계 평화",w.peace+"/100",GREEN);
@@ -695,7 +702,7 @@ public final class MainActivity extends Activity {
         widgets.addView(label("위젯을 터치하면 현재 세계가 열립니다.",12,DIM,false));
         gap(c,18);
         section(c,"주의 사항","실제 역사·현재 국제관계에 대한 예측이 아니에요.");
-        c.addView(label("지도는 공공영역 Natural Earth 1:110m 국가 경계 데이터입니다. 소국은 경계선이 생략되거나 확대 위치 표시로 나타나며 분쟁 지역은 지도 제작사 분류를 따릅니다. 인구·GDP는 실제 발표연도별 공개자료이지만 사회·정치·외교 수치는 게임 모형입니다.",13,DIM,false));
+        c.addView(label("위성 배경: Esri World Imagery 실제 위성·항공사진. 인터넷 연결과 영상 제공 서비스 이용 조건이 적용되며 촬영 시기는 지역에 따라 다릅니다. 화면 하단에 Esri 및 영상 제공자 출처를 표시합니다. 국경: Natural Earth 1:110m. 소국·분쟁지역에는 축척·경계 표기 차이가 있습니다. 경제·외교 지표는 가상의 게임 모델입니다.",13,DIM,false));
         gap(c,22);
         c.addView(button("⚠️ 새로운 지구로 초기화",false,()->new AlertDialog.Builder(this)
             .setTitle("정말 새로운 지구를 만들까요?")
