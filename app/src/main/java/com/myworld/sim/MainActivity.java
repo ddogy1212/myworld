@@ -63,6 +63,9 @@ public final class MainActivity extends Activity {
         getWindow().setNavigationBarColor(BG);
         WorldJob.schedule(this);
         render();
+        if(!getSharedPreferences("myworld_ui",MODE_PRIVATE).getBoolean("tutorial_seen",false)){
+            new Handler().postDelayed(this::showFirstLaunch,300);
+        }
     }
     @Override protected void onResume(){
         super.onResume();
@@ -135,19 +138,28 @@ public final class MainActivity extends Activity {
         LinearLayout header=vertical();
         header.setPadding(d(16),d(14),d(16),d(12));
         header.addView(label("MYWORLD  🌍",24,CYAN,true));
+        header.addView(label("명령을 내리면 세계가 변한다 · 197개 국가의 살아있는 역사",11,DIM,false));
+        gap(header,7);
         LinearLayout line=horizontal();
         TextView clock=label(world.date()+" · "+world.nations.size()+"개국",13,LIGHT,true);
         line.addView(clock,new LinearLayout.LayoutParams(0,-2,1));
         TextView point=label("영향력 ✦ "+world.influence+"/24",12,YELLOW,true);
         line.addView(point);header.addView(line);
+        if(!world.events.isEmpty()){
+            String latest=world.events.get(0).text;
+            TextView ticker=label("✦ "+(latest.length()>65?latest.substring(0,65)+"…":latest),11,GREEN,false);
+            ticker.setSingleLine(true);
+            ticker.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            ticker.setPadding(d(12),d(7),d(12),d(7));
+            ticker.setBackground(shape(CARD,8));
+            header.addView(ticker);
+        }
         root.addView(header);
         ScrollView scroll=new ScrollView(this);
         scroll.setFillViewport(true);
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout content=vertical();content.setPadding(d(15),d(8),d(15),d(20));
         scroll.addView(content);
-        commandConsole(content,world);
-        gap(content,15);
         switch(tab){
             case 0:overview(content,world);break;
             case 1:nation(content,world);break;
@@ -197,10 +209,22 @@ public final class MainActivity extends Activity {
         parent.addView(c);gap(parent,7);
     }
     private void overview(LinearLayout c,WorldState w){
-        section(c,"살아 있는 또 하나의 지구","세계는 앱을 닫아도 현실 시간에 맞춰 변화해요.");
+        section(c,"살아 있는 또 하나의 지구","국경을 눌러 국가를 선택하고, 지도를 두 손가락으로 확대해봐.");
+        LinearLayout tools=horizontal();
+        tools.addView(button("🔎 국가 검색",true,()->chooseNationDialog(false)),new LinearLayout.LayoutParams(0,-2,1));
+        tools.addView(button("🎯 목표 보기",false,()->showHowToPlay()),new LinearLayout.LayoutParams(0,-2,1));
+        c.addView(tools);gap(c,9);
         WorldMapView map=new WorldMapView(this,w);
         map.setOnCountryClick(id->{chooseCountry(id);tab=1;render();});
         c.addView(map,new LinearLayout.LayoutParams(-1,-2));
+        gap(c,8);
+        LinearLayout filters=horizontal();
+        filters.addView(button("안정도",true,()->map.setMetricMode(0)),new LinearLayout.LayoutParams(0,-2,1));
+        filters.addView(button("경제",false,()->map.setMetricMode(1)),new LinearLayout.LayoutParams(0,-2,1));
+        filters.addView(button("환경",false,()->map.setMetricMode(2)),new LinearLayout.LayoutParams(0,-2,1));
+        filters.addView(button("전체",false,map::resetZoom),new LinearLayout.LayoutParams(0,-2,1));
+        c.addView(filters);gap(c,5);
+        c.addView(label("Natural Earth 실측 국경 1:110m · 작은 나라는 확대 후 표시 · 분쟁 지역 경계 표기는 자료 기준",11,DIM,false));
         gap(c,13);
         LinearLayout row=horizontal();
         stat(row,"세계 평화",w.peace+"/100",GREEN);
@@ -217,6 +241,10 @@ public final class MainActivity extends Activity {
         report.addView(countdown);gap(report,4);
         report.addView(label("현실 24시간 = 게임 1개월 · 현재 "+w.date(),12,DIM,false));
         gap(c,16);
+        quests(c,w);
+        gap(c,13);
+        commandConsole(c,w);
+        gap(c,17);
 
         section(c,"문명 현황","정책·교류·시민 행동이 서로 영향을 줘요.");
         LinearLayout box=card(c);
@@ -227,6 +255,12 @@ public final class MainActivity extends Activity {
         info(box,"탄소 압력",w.carbon+"/100");
         gap(c,16);
         section(c,"최근 일어난 일","사람과 정부가 스스로 만든 역사");
+        if(!w.lastImpact.isEmpty()){
+            LinearLayout last=card(c);
+            last.addView(label("✨ 네가 바꾼 세계 · "+w.eventDate(w.lastImpactMonth),15,CYAN,true));
+            gap(last,6);last.addView(label(w.lastImpact,12,LIGHT,false));
+            gap(c,10);
+        }
         for(int i=0;i<Math.min(w.events.size(),6);i++)eventLine(c,w,w.events.get(i));
         gap(c,8);
         c.addView(button("모든 사건·연대기 보기  →",false,()->{tab=3;render();}));
@@ -361,7 +395,11 @@ public final class MainActivity extends Activity {
         info(summary,"재정",one(n.treasury)+" 단위");
         info(summary,"지난달 자율 정책",n.lastPolicy<0?"예산 부족으로 미시행":WorldEngine.POLICIES[n.lastPolicy]);
         info(summary,"시민 만족도",n.satisfaction()+"/100");
+        gap(c,12);
+        summary.addView(button("⚡ 정책을 내 문장으로 직접 명령하기",true,()->commandPrompt(n.id)));
         gap(c,16);
+        commandConsole(c,w);
+        gap(c,14);
 
         section(c,"사회·경제 기반","수치는 게임용 지표(0~100)이며 현실 통계가 아니에요.");
         LinearLayout metrics=card(c);
@@ -437,6 +475,8 @@ public final class MainActivity extends Activity {
         info(s,"국제 협력 조약",w.pacts[source.id][target]>0?"체결":"없음");
         info(s,"지역 분쟁",w.conflicts[source.id][target]>0?"진행 중":"없음");
         gap(c,17);
+        commandConsole(c,w);
+        gap(c,13);
         section(c,"국제 행동","경제 협력·문화 교류·평화 중재로 관계를 바꿔요.");
         for(int i=0;i<WorldEngine.DIPLOMACY.length;i++){
             final int action=i;
@@ -515,7 +555,7 @@ public final class MainActivity extends Activity {
         widgets.addView(label("위젯을 터치하면 현재 세계가 열립니다.",12,DIM,false));
         gap(c,18);
         section(c,"주의 사항","실제 역사·현재 국제관계에 대한 예측이 아니에요.");
-        c.addView(label("지도는 게임 전용 도식이고 실제 국경을 정확히 표현하지 않습니다. 국가별 초기 능력치와 경제·사회 반응은 재미를 위한 허구의 변수입니다. 분쟁도 인구·외교·경제 영향 중심으로만 묘사합니다.",13,DIM,false));
+        c.addView(label("지도는 공공영역 Natural Earth 1:110m 국가 경계 데이터입니다. 소국은 경계선이 생략되거나 확대 위치 표시로 나타나며 분쟁 지역은 지도 제작사 분류를 따릅니다. 인구·GDP는 실제 발표연도별 공개자료이지만 사회·정치·외교 수치는 게임 모형입니다.",13,DIM,false));
         gap(c,22);
         c.addView(button("⚠️ 새로운 지구로 초기화",false,()->new AlertDialog.Builder(this)
             .setTitle("정말 새로운 지구를 만들까요?")
