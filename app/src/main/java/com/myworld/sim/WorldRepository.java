@@ -22,7 +22,9 @@ public final class WorldRepository {
         AtomicFile file=new AtomicFile(new File(context.getApplicationContext().getFilesDir(),NAME));
         try{
             byte[] bytes=file.readFully();
-            cached=WorldState.from(new JSONObject(new String(bytes,StandardCharsets.UTF_8)));
+            WorldState decoded=WorldState.from(new JSONObject(new String(bytes,StandardCharsets.UTF_8)));
+            cached=WorldState.migrateLegacy(decoded);
+            if(cached!=decoded)save(context,cached);
         }catch(Exception error){
             Log.w("MYWORLD","No valid save. Initializing new world: "+error.getMessage());
             cached=WorldState.fresh(System.currentTimeMillis());
