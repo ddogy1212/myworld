@@ -6,39 +6,26 @@
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="3dp">
+    android:padding="2dp">
+    <ImageView android:layout_width="28dp" android:layout_height="28dp"
+        android:src="@drawable/ic_world"
+        android:contentDescription="@string/widget_description"/>
     <TextView android:id="@+id/world_widget_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="🌍 MYWORLD"
-        android:textSize="9sp"
-        android:textStyle="bold"
-        android:maxLines="1"
-        android:textColor="#92E2FF"/>
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:text="MYWORLD"
+        android:textSize="8sp" android:textStyle="bold"
+        android:maxLines="1" android:textColor="#92E2FF"/>
     <TextView android:id="@+id/world_widget_date"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="2040.01"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:maxLines="1"
-        android:textColor="#FFFFFF"/>
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:text="2040.01"
+        android:textSize="11sp" android:textStyle="bold"
+        android:maxLines="1" android:textColor="#FFFFFF"/>
     <TextView android:id="@+id/world_widget_health"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="평화 75"
-        android:textSize="9sp"
-        android:maxLines="1"
-        android:textColor="#74E4C7"/>
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:text="평화 75"
+        android:textSize="9sp" android:maxLines="1" android:textColor="#74E4C7"/>
     <TextView android:id="@+id/world_widget_eco"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="경제 65"
-        android:textSize="9sp"
-        android:maxLines="1"
-        android:textColor="#E9DB9D"/>
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:text="경제 65"
+        android:textSize="9sp" android:maxLines="1" android:textColor="#E9DB9D"/>
 </LinearLayout>
