@@ -108,6 +108,7 @@ public final class WorldEngine {
         }
         String message=n.name+"에서 "+POLICIES[policy]+" 사업을 강도 "+intensity+
             "로 시행"+(months>1?"하고 "+months+"개월 장기 프로그램을 등록했다.":"했다.");
+        w.playerPolicies++;
         w.addEvent("플레이어",message);
         return message;
     }
@@ -131,6 +132,7 @@ public final class WorldEngine {
         }
         String message=n.name+"에서 세부담 "+(higher?"인상":"완화")+
             " 정책을 강도 "+intensity+"로 시행했다. 국가 재정과 경제·시민 만족도가 변했다.";
+        w.playerPolicies++;
         w.addEvent("플레이어",message);return message;
     }
 
@@ -144,6 +146,7 @@ public final class WorldEngine {
         }
         w.carbon=Math.max(0,w.carbon-2);
         String message="197개국 공동 기후 협의를 개최했다. 국제 정책 협력이 강화됐다.";
+        w.playerPolicies++;
         w.addEvent("플레이어",message);return message;
     }
 
@@ -419,6 +422,7 @@ public final class WorldEngine {
         w.influence-=cost;w.interventionsUsed++;n.treasury-=cost;
         policy(w,n,policy,true);
         String message="🌱 "+n.name+"에서 '"+POLICIES[policy]+"'이(가) 시행됐다.";
+        w.playerPolicies++;
         w.addEvent("플레이어",message);return message;
     }
     public static String playerDiplomacy(WorldState w,int a,int b,int kind){
@@ -455,6 +459,7 @@ public final class WorldEngine {
                 impact="분쟁 중재와 공개 협의체 구성에 합의했다.";
         }
         String result="🤝 "+x.name+" · "+y.name+": "+impact;
+        w.playerDiplomacy++;
         w.addEvent("플레이어",result);return result;
     }
 }
