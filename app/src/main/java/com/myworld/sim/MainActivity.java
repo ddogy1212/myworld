@@ -339,40 +339,172 @@ public final class MainActivity extends Activity {
         dialog.show();
     }
 
+    private void showFirstLaunch(){
+        getSharedPreferences("myworld_ui",MODE_PRIVATE).edit()
+            .putBoolean("tutorial_seen",true).apply();
+        showHowToPlay();
+    }
+    private void showHowToPlay(){
+        new AlertDialog.Builder(this)
+            .setTitle("🌍 MYWORLD · 첫 번째 임무")
+            .setMessage("네가 이 세계에 영향을 주는 방법!\n\n"+
+                "① 🌐 지도에서 나라를 눌러 상황을 확인해.\n"+
+                "② 🏛 국가에서 교육·환경·의료 등 정책을 시행해.\n"+
+                "③ ✨ 결과 창에서 어떤 수치가 얼마나 변했는지 확인해.\n"+
+                "④ ⌨️ 원하는 정책을 직접 문장으로 입력해도 돼.\n\n"+
+                "현실 하루 = 게임 속 한 달. 접속하지 않아도 국가는 스스로 연구하고 외교해.\n\n"+
+                "첫 목표는 나라 하나를 골라 첫 정책을 시행하는 거야!")
+            .setPositiveButton("첫 정책 실행하러 가기",(dialog,which)->{
+                tab=1;render();
+            })
+            .setNegativeButton("지도부터 볼게",(dialog,which)->{
+                tab=0;render();
+            }).show();
+    }
+    private void quests(LinearLayout parent,WorldState w){
+        section(parent,"🎯 세계 운영 목표",
+            "정책을 수행하고 영향력 보상을 받아 다음 계획에 활용해.");
+        LinearLayout board=card(parent);
+        board.addView(label("달성한 목표 "+WorldQuests.completed(w)+"/"+
+            WorldQuests.TITLE.length,16,CYAN,true));
+        gap(board,10);
+        int shown=0;
+        for(int i=0;i<WorldQuests.TITLE.length;i++){
+            if(WorldQuests.claimed(w,i))continue;
+            final int quest=i;
+            boolean ready=WorldQuests.done(w,i);
+            LinearLayout item=vertical();
+            item.setPadding(d(11),d(11),d(11),d(11));
+            item.setBackground(shape(ready?Color.rgb(24,74,66):Color.rgb(25,45,67),10));
+            item.addView(label((ready?"✅ ":"⬡ ")+WorldQuests.TITLE[i],
+                14,ready?GREEN:LIGHT,true));
+            gap(item,5);
+            item.addView(label(WorldQuests.DESCRIPTION[i],12,DIM,false));
+            gap(item,5);
+            if(ready){
+                item.addView(button("✦ 영향력 +"+WorldQuests.REWARD[i]+" 받기",true,()->{
+                    String claim=WorldRepository.change(this,s->WorldQuests.claim(s,quest));
+                    Toast.makeText(this,claim,Toast.LENGTH_LONG).show();
+                    WorldWidget.updateAll(this);render();
+                }));
+            }else{
+                item.addView(label("보상: 영향력 +"+WorldQuests.REWARD[i],11,YELLOW,false));
+            }
+            board.addView(item);gap(board,7);
+            if(++shown>=3)break;
+        }
+        if(shown==0)board.addView(label("🎉 모든 기본 목표를 달성했어! 이제 원하는 문명을 만들어봐.",13,GREEN,true));
+        board.addView(button("🧭 게임 진행 방법",false,this::showHowToPlay));
+    }
+
     private void commandConsole(LinearLayout parent,WorldState w){
         LinearLayout panel=card(parent);
-        panel.addView(label("⌨️ 세계 명령 입력",17,CYAN,true));
-        gap(panel,6);
-        panel.addView(label("국가·정책·기간을 문장으로 입력하고 확인 후 실행해.",12,DIM,false));
+        panel.addView(label("⌨️ 내 말로 세계 지휘하기",17,CYAN,true));
+        gap(panel,5);
+        panel.addView(label("선택지에 없는 정책도 지원되는 분야라면 문장으로 지시해. 실행 전 내용을 꼭 확인해줘.",12,DIM,false));
         gap(panel,9);
         EditText typed=new EditText(this);
         typed.setHint("예: 부탄에 12개월 동안 재생에너지 투자");
         typed.setTextColor(LIGHT);typed.setHintTextColor(DIM);
-        typed.setTextSize(14);
-        typed.setMinLines(2);typed.setMaxLines(4);
+        typed.setTextSize(14);typed.setMinLines(2);typed.setMaxLines(4);
         typed.setBackground(shape(Color.rgb(24,46,67),9));
-        typed.setPadding(d(9),d(9),d(9),d(9));
+        typed.setPadding(d(10),d(10),d(10),d(10));
         panel.addView(typed,new LinearLayout.LayoutParams(-1,-2));
-        gap(panel,8);
-        panel.addView(button("명령 분석 및 실행 확인  →",true,()->{
-            WorldCommand.Plan plan=WorldCommand.interpret(state(),typed.getText().toString());
-            if(!plan.valid()){
-                new AlertDialog.Builder(this).setTitle("명령을 해석하지 못했어")
-                    .setMessage(plan.error).setPositiveButton("수정할게",null).show();
-                return;
-            }
-            new AlertDialog.Builder(this).setTitle("다음 명령으로 실행할까?")
-                .setMessage(plan.explanation+"\n\n진행하면 게임 세계에 반영되고 되돌리기 어려워.")
-                .setNegativeButton("입력 수정",null)
-                .setPositiveButton("확인 후 실행",(dialog,which)->{
-                    String outcome=WorldRepository.change(this,plan::execute);
-                    Toast.makeText(this,outcome,Toast.LENGTH_LONG).show();
-                    WorldWidget.updateAll(this);
-                    render();
-                }).show();
-        }));
         gap(panel,7);
-        panel.addView(label("예: 몰디브 의료 확대 · 한국과 일본 무역협정 · 영국 세금 인하 · 세계 전체 탄소 협력",11,DIM,false));
+        panel.addView(button("⚡ 명령 분석 → 확인 → 세계에 반영",true,()->
+            analyzeCommand(typed.getText().toString())));
+        gap(panel,8);
+        panel.addView(label("예: 한국 교육 확대 · 일본과 미국 무역협정 · 몰디브 의료 투자",11,DIM,false));
+    }
+
+    private void commandPrompt(int selectedNation){
+        WorldState w=state();
+        EditText input=new EditText(this);
+        input.setText(w.nations.get(selectedNation).name+"에 ");
+        input.setSelection(input.length());
+        input.setTextSize(15);input.setMinLines(2);
+        input.setPadding(d(20),d(12),d(20),d(12));
+        new AlertDialog.Builder(this).setTitle("⌨️ 정책 명령 작성")
+            .setMessage("하고 싶은 일을 나라 이름과 함께 자유롭게 적어줘.\n"+
+                "예: 한국에 6개월간 공교육 투자")
+            .setView(input).setNegativeButton("취소",null)
+            .setPositiveButton("분석", (dialog,which)->
+                analyzeCommand(input.getText().toString())).show();
+    }
+
+    private void analyzeCommand(String request){
+        WorldCommand.Plan plan=WorldCommand.interpret(state(),request);
+        if(!plan.valid()){
+            new AlertDialog.Builder(this).setTitle("⚠️ 해석이 어려운 명령")
+                .setMessage(plan.error+"\n\n예: 부탄에 12개월 동안 재생에너지 투자\n"+
+                    "한국과 일본 외교 대화\n가나의 의료 강화\n세계 전체 기후 협력")
+                .setPositiveButton("확인",null).show();
+            return;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("📝 명령서 확인")
+            .setMessage(plan.explanation+"\n\n명령 확인을 누르면 시뮬레이션에 즉시 반영되고 결과 비교 화면이 열려.")
+            .setNegativeButton("입력 다시 하기",null)
+            .setPositiveButton("⚡ 명령 실행",(dialog,which)->
+                runImpactAction(plan.country,plan.other,plan::execute)).show();
+    }
+
+    private void runImpactAction(int nationId,int otherId,
+                                 java.util.function.Function<WorldState,String> action){
+        WorldImpact.Result r=WorldRepository.change(this,w->{
+            WorldImpact.Result result=WorldImpact.run(w,nationId,otherId,()->action.apply(w));
+            if(result.success && nationId>=0 && nationId<w.nations.size())w.selected=nationId;
+            return result;
+        });
+        if(!r.success){
+            new AlertDialog.Builder(this).setTitle("⚠️ 정책을 실행하지 못했어")
+                .setMessage(r.message).setPositiveButton("확인",null).show();
+            return;
+        }
+        WorldWidget.updateAll(this);
+        render();
+        showImpactReport(r);
+    }
+
+    private void showImpactReport(WorldImpact.Result r){
+        ScrollView scroll=new ScrollView(this);
+        LinearLayout body=vertical();
+        body.setPadding(d(16),d(16),d(16),d(16));
+        scroll.addView(body);
+        body.addView(label("⚡ 세계가 변화했어!",20,Color.rgb(9,90,87),true));
+        gap(body,10);
+        TextView title=label(r.message,14,Color.DKGRAY,false);
+        body.addView(title);gap(body,13);
+        if(r.deltas.isEmpty()){
+            body.addView(label("지표 변화가 즉시 계산되지 않았어. 장기 효과는 다음 게임 달에 반영될 수 있어.",13,Color.DKGRAY,false));
+        }else{
+            int displayed=0;
+            for(WorldImpact.Delta delta:r.deltas){
+                LinearLayout box=vertical();
+                box.setPadding(d(11),d(9),d(11),d(9));
+                int color=delta.change()>0 == delta.higherIsGood?
+                    Color.rgb(18,102,83):Color.rgb(170,79,58);
+                box.setBackground(shape(Color.rgb(222,240,239),10));
+                box.addView(label(delta.title,13,Color.rgb(29,45,56),true));
+                gap(box,4);
+                box.addView(label(delta.format(delta.before)+" → "+
+                    delta.format(delta.after)+"    ("+delta.changeLabel()+")",16,color,true));
+                body.addView(box);gap(body,7);
+                if(++displayed>=7)break;
+            }
+        }
+        gap(body,8);
+        body.addView(label("※ 숫자는 이 게임의 실제 저장값 변화야. 현실 국가에 대한 예측이 아니야.",12,Color.DKGRAY,false));
+        AlertDialog dialog=new AlertDialog.Builder(this)
+            .setTitle("📋 정책 실행 결과")
+            .setView(scroll)
+            .setNegativeButton("계속 플레이",null)
+            .setPositiveButton("🏛 국가 변화 확인",(d,which)->{
+                if(r.country>=0){chooseCountry(r.country);tab=1;}
+                else tab=0;
+                render();
+            }).create();
+        dialog.show();
     }
 
     private void nation(LinearLayout c,WorldState w){
