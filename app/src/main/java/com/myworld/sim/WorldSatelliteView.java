@@ -91,7 +91,7 @@ public final class WorldSatelliteView extends View {
                 invalidate();return true;
             }
         });
-        focus(state.selected);
+        focus(data.selected);
         postDelayed(this::invalidate,16000L);
         // Prefer GPU accelerated Canvas for smooth tile panning.
     }
