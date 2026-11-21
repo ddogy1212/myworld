@@ -284,9 +284,9 @@ public final class WorldState {
     public double uniform() {return (dice(1000000)+0.5)/1000000.0;}
     public static int clamp(int v){return Math.min(100,Math.max(0,v));}
     public static int clampSigned(int v){return Math.min(100,Math.max(-100,v));}
-    public String date(){return String.format(Locale.KOREA,"%d년 %02d월",2040+month/12,1+month%12);}
-    public String dateShort(){return String.format(Locale.KOREA,"%d.%02d",2040+month/12,1+month%12);}
-    public String eventDate(int at){return String.format(Locale.KOREA,"%d.%02d",2040+at/12,1+at%12);}
+    public String date(){int t=2026*12+10+month;return String.format(Locale.KOREA,"%d년 %02d월",t/12,1+t%12);}
+    public String dateShort(){int t=2026*12+10+month;return String.format(Locale.KOREA,"%d.%02d",t/12,1+t%12);}
+    public String eventDate(int at){int t=2026*12+10+at;return String.format(Locale.KOREA,"%d.%02d",t/12,1+t%12);}
     public long nextMonthAt(){return originUtc+(month+1L)*MONTH_MS;}
     public int tradePacts(){int n=0;for(int a=0;a<nations.size();a++)for(int b=a+1;b<nations.size();b++)if(pacts[a][b]>0)n++;return n;}
     public int conflictsCount(){int n=0;for(int a=0;a<nations.size();a++)for(int b=a+1;b<nations.size();b++)if(conflicts[a][b]>0)n++;return n;}
