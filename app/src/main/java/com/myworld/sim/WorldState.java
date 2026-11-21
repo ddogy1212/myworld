@@ -18,7 +18,9 @@ public final class WorldState {
 
     public static class Nation {
         public int id;
-        public String name, region;
+        public String name, region, iso3, sovereignty;
+        public int populationYear, gdpYear;
+        public double gdpUsd;
         public int mapX, mapY;
         public double population;
         public double treasury;
@@ -49,6 +51,8 @@ public final class WorldState {
         public JSONObject json() throws JSONException {
             JSONObject j=new JSONObject();
             j.put("id",id);j.put("name",name);j.put("region",region);
+            j.put("iso3",iso3);j.put("sovereignty",sovereignty);
+            j.put("populationYear",populationYear);j.put("gdpYear",gdpYear);j.put("gdpUsd",gdpUsd);
             j.put("x",mapX);j.put("y",mapY);j.put("population",population);
             j.put("treasury",treasury);j.put("economy",economy);
             j.put("stability",stability);j.put("education",education);
@@ -65,6 +69,9 @@ public final class WorldState {
         public static Nation from(JSONObject j) throws JSONException {
             Nation n=new Nation();
             n.id=j.getInt("id");n.name=j.getString("name");n.region=j.getString("region");
+            n.iso3=j.optString("iso3","");n.sovereignty=j.optString("sovereignty","MEMBER");
+            n.populationYear=j.optInt("populationYear",0);n.gdpYear=j.optInt("gdpYear",0);
+            n.gdpUsd=j.optDouble("gdpUsd",0);
             n.mapX=j.getInt("x");n.mapY=j.getInt("y");
             n.population=j.getDouble("population");n.treasury=j.getDouble("treasury");
             n.economy=j.getInt("economy");n.stability=j.getInt("stability");
@@ -134,59 +141,51 @@ public final class WorldState {
     public int[][] relations, trade, tensions, pacts, conflicts;
     public String lastMonthlyDigest="";
 
-    private static final String[] SEED_NATIONS = {
-            "대한민국|동아시아|864|237|52|78|86|56|78|2",
-            "일본|동아시아|897|239|123|78|84|62|80|2",
-            "중국|동아시아|797|229|1050|73|76|47|72|0",
-            "인도|남아시아|711|285|1180|57|58|50|61|0",
-            "인도네시아|동남아시아|816|370|260|63|63|58|74|3",
-            "베트남|동남아시아|802|294|100|67|66|59|74|0",
-            "미국|북아메리카|185|213|340|83|88|51|76|2",
-            "캐나다|북아메리카|184|129|40|79|77|79|85|1",
-            "멕시코|북아메리카|171|285|130|62|59|58|68|3",
-            "브라질|남아메리카|336|364|210|66|65|63|69|1",
-            "아르헨티나|남아메리카|311|439|45|61|60|69|63|3",
-            "영국|유럽|473|183|68|79|81|67|80|4",
-            "프랑스|유럽|479|211|66|79|80|71|80|4",
-            "독일|유럽|506|201|83|83|84|75|82|1",
-            "이탈리아|유럽|504|236|59|76|71|68|78|3",
-            "스페인|유럽|449|236|48|74|71|73|79|3",
-            "러시아|유라시아|670|133|145|68|73|59|66|2",
-            "튀르키예|유라시아|568|249|86|65|68|59|66|4",
-            "사우디아라비아|중동|610|289|37|76|70|43|75|0",
-            "이란|중동|633|265|89|62|68|49|62|2",
-            "이집트|아프리카|537|281|112|57|51|41|64|3",
-            "나이지리아|아프리카|497|346|230|56|55|45|57|0",
-            "남아프리카공화국|아프리카|535|439|63|68|67|54|65|3",
-            "호주|오세아니아|869|420|27|81|82|79|84|1"
-    };
+    private static String koreanCountry(String iso2,String iso3,String english){
+        if("XKX".equals(iso3))return "코소보";
+        if("VAT".equals(iso3))return "바티칸 시국";
+        if("PSE".equals(iso3))return "팔레스타인";
+        if("TWN".equals(iso3))return "대만";
+        String display=new java.util.Locale("",iso2).getDisplayCountry(java.util.Locale.KOREAN);
+        if(display==null||display.trim().isEmpty()||display.equals(iso2))return english;
+        return display;
+    }
 
-    public static WorldState fresh(long now) {
+    public static WorldState fresh(long now){
         WorldState w=new WorldState();
         w.originUtc=now;w.random=0x6A09E667F3BCC909L;
-        for(int i=0;i<SEED_NATIONS.length;i++){
-            String[] f=SEED_NATIONS[i].split("\\|");
+        for(int i=0;i<NationCatalog.size();i++){
+            String[] f=NationCatalog.ROWS[i].split("\\|",-1);
+            if(f.length!=11)throw new IllegalStateException("Invalid catalogue row "+i);
             Nation n=new Nation();
-            n.id=i;n.name=f[0];n.region=f[1];
-            n.mapX=Integer.parseInt(f[2]);n.mapY=Integer.parseInt(f[3]);
-            n.population=Double.parseDouble(f[4]);
-            int e=Integer.parseInt(f[5]), sci=Integer.parseInt(f[6]);
-            n.environment=Integer.parseInt(f[7]);n.stability=Integer.parseInt(f[8]);
-            n.focus=Integer.parseInt(f[9]);
-            n.economy=e;n.science=sci;
-            n.education=clamp(sci+w.dice(15)-7);
-            n.health=clamp(50+e/3+w.dice(18)-8);
-            n.industry=clamp(e+w.dice(23)-11);
-            n.transport=clamp(e+w.dice(24)-12);
-            n.welfare=clamp(47+e/3+w.dice(22)-11);
-            n.energy=clamp(45+w.dice(38));
-            n.food=clamp(48+w.dice(39));
-            n.defense=clamp(30+e/2+w.dice(17));
-            n.diplomacy=clamp(42+w.dice(38));
-            n.treasury=20+e*0.35;
-            n.lastPolicy=-1;
+            n.id=i;n.iso3=f[0];
+            n.name=koreanCountry(f[1],f[0],f[2]);
+            n.sovereignty=f[3];n.region=f[4];
+            n.mapX=Integer.parseInt(f[5]);n.mapY=Integer.parseInt(f[6]);
+            n.population=Double.parseDouble(f[7]);n.populationYear=Integer.parseInt(f[8]);
+            n.gdpUsd=Double.parseDouble(f[9]);n.gdpYear=Integer.parseInt(f[10]);
+            double perCap=(n.gdpUsd>0&&n.population>0)
+                    ? n.gdpUsd/(n.population*1_000_000.0):0;
+            // Only GDP and population are sourced measurements.
+            // All gameplay attributes are explicitly generated model indices.
+            int derived=perCap>0?clamp((int)(27+15*Math.log10(Math.max(1,perCap)))):50;
+            n.economy=derived;
+            n.science=clamp(derived-9+w.dice(25)-12);
+            n.education=clamp(derived-7+w.dice(25)-12);
+            n.environment=clamp(48+w.dice(33)-16);
+            n.stability=clamp(54+w.dice(35)-17);
+            n.health=clamp(42+derived/3+w.dice(20)-10);
+            n.industry=clamp(derived+w.dice(26)-13);
+            n.transport=clamp(derived+w.dice(26)-13);
+            n.welfare=clamp(46+derived/3+w.dice(24)-12);
+            n.energy=clamp(43+w.dice(40));
+            n.food=clamp(44+w.dice(42));
+            n.defense=clamp(31+derived/2+w.dice(19));
+            n.diplomacy=clamp(46+w.dice(36));
+            n.treasury=20+derived*0.35;
+            n.focus=w.dice(5);n.lastPolicy=-1;
             for(int t=0;t<TECH_BRANCHES;t++){
-                n.technology[t]=Math.max(0,Math.min(10,(sci+w.dice(24)-11)/13));
+                n.technology[t]=Math.max(0,Math.min(10,(n.science+w.dice(24)-11)/13));
                 n.research[t]=w.dice(90);
             }
             for(int g=0;g<n.groups.length;g++)
@@ -199,25 +198,66 @@ public final class WorldState {
         w.conflicts=new int[count][count];
         for(int a=0;a<count;a++)for(int b=a+1;b<count;b++){
             Nation x=w.nations.get(a),y=w.nations.get(b);
-            int rel=clampSigned(15+(x.region.equals(y.region)?13:0)+w.dice(46)-23);
-            w.relations[a][b]=w.relations[b][a]=rel;
-            w.trade[a][b]=w.trade[b][a]=Math.max(0,12+rel/3+w.dice(18));
-            w.tensions[a][b]=w.tensions[b][a]=Math.max(0,22-rel/2);
+            int trust=clampSigned(8+(x.region.equals(y.region)?11:0)+w.dice(42)-21);
+            w.relations[a][b]=w.relations[b][a]=trust;
+            w.trade[a][b]=w.trade[b][a]=Math.max(0,12+trust/3+w.dice(18));
+            w.tensions[a][b]=w.tensions[b][a]=Math.max(0,22-trust/2);
         }
-        // A few deterministic alternate-history rivalries give autonomous
-        // negotiation, tension and peacekeeping meaningful initial conditions.
-        // Pairings are procedurally selected, not factual geopolitical claims.
-        for(int k=0;k<5;k++){
-            int left=w.dice(count),right=w.dice(count);
-            if(left==right)right=(right+1)%count;
-            int rivalry=-36-w.dice(25), tension=56+w.dice(23);
-            w.relations[left][right]=w.relations[right][left]=rivalry;
-            w.tensions[left][right]=w.tensions[right][left]=tension;
-            w.trade[left][right]=w.trade[right][left]=Math.max(1,w.trade[left][right]/3);
-        }
-        w.addEvent("개국","가상 지구의 새 역사가 시작됐다. 24개 국가가 독립적으로 성장하고 관계를 만들어 간다.");
-        w.addEvent("시스템","현실 24시간에 게임 1개월이 흐른다. 국가는 플레이어 접속 없이도 자율적으로 행동한다.");
+        // The game does NOT assert that these are 2026 diplomatic measurements.
+        // International baseline is hypothetical; avoid asserting real conflict.
+        w.addEvent("개국","197개 정치 실체가 있는 가상 지구의 역사가 시작됐다. 기본 인구·GDP는 공개 연도별 자료로 초기화됐다.");
+        w.addEvent("자료","인구: 세계은행 자료 최대 2025년 / 명목 GDP: 확보 데이터 최대 2023년. 정치·사회·외교 지수는 게임용 가상 수치.");
         return w;
+    }
+
+    /**
+     * Migrate pre-v2 24-country worlds by ISO identity. Keep prior events,
+     * time and player investment instead of deleting the save.
+     */
+    public static WorldState migrateLegacy(WorldState old){
+        if(old.nations.size()==NationCatalog.size())return old;
+        if(old.nations.size()!=NationCatalog.LEGACY_ISO.length)
+            throw new IllegalArgumentException("Unsupported old country count "+old.nations.size());
+        WorldState upgraded=fresh(old.originUtc);
+        upgraded.month=old.month;upgraded.random=old.random;
+        upgraded.influence=old.influence;
+        upgraded.interventionMonth=old.interventionMonth;
+        upgraded.interventionsUsed=old.interventionsUsed;
+        upgraded.carbon=old.carbon;upgraded.climate=old.climate;
+        upgraded.peace=old.peace;upgraded.globalEvents=old.globalEvents;
+        upgraded.lastMonthlyDigest=old.lastMonthlyDigest;
+        int[] mapping=new int[old.nations.size()];
+        for(int i=0;i<mapping.length;i++){
+            String code=NationCatalog.LEGACY_ISO[i];
+            int at=-1;
+            for(int j=0;j<upgraded.nations.size();j++)
+                if(code.equals(upgraded.nations.get(j).iso3)){at=j;break;}
+            if(at<0)throw new IllegalStateException("Country missing in migration: "+code);
+            mapping[i]=at;
+            Nation source=old.nations.get(i),dest=upgraded.nations.get(at);
+            dest.economy=source.economy;dest.stability=source.stability;
+            dest.education=source.education;dest.health=source.health;
+            dest.environment=source.environment;dest.food=source.food;
+            dest.energy=source.energy;dest.industry=source.industry;
+            dest.science=source.science;dest.transport=source.transport;
+            dest.welfare=source.welfare;dest.defense=source.defense;
+            dest.diplomacy=source.diplomacy;dest.treasury=source.treasury;
+            dest.focus=source.focus;dest.lastPolicy=source.lastPolicy;
+            dest.technology=source.technology.clone();
+            dest.research=source.research.clone();dest.groups=source.groups.clone();
+        }
+        for(int a=0;a<mapping.length;a++)for(int b=0;b<mapping.length;b++){
+            int i=mapping[a],j=mapping[b];
+            upgraded.relations[i][j]=old.relations[a][b];
+            upgraded.trade[i][j]=old.trade[a][b];
+            upgraded.tensions[i][j]=old.tensions[a][b];
+            upgraded.pacts[i][j]=old.pacts[a][b];
+            upgraded.conflicts[i][j]=old.conflicts[a][b];
+        }
+        upgraded.selected=mapping[Math.max(0,Math.min(old.selected,mapping.length-1))];
+        upgraded.events.clear();upgraded.events.addAll(old.events);
+        upgraded.addEvent("시스템","국가 목록을 24개에서 197개로 확장했으며 기존 24개국과 세계 기록을 보존했다.");
+        return upgraded;
     }
 
     public void addEvent(String type,String text){
@@ -287,7 +327,8 @@ public final class WorldState {
         w.lastMonthlyDigest=j.optString("digest","");
         JSONArray a=j.getJSONArray("nations");
         for(int i=0;i<a.length();i++)w.nations.add(Nation.from(a.getJSONObject(i)));
-        if(w.nations.size()!=SEED_NATIONS.length)throw new JSONException("Incomplete country data");
+        if(w.nations.size()!=NationCatalog.size() && w.nations.size()!=NationCatalog.LEGACY_ISO.length)
+            throw new JSONException("Incomplete or incompatible country data");
         a=j.getJSONArray("events");
         for(int i=0;i<a.length();i++)w.events.add(Event.from(a.getJSONObject(i)));
         int n=w.nations.size();
